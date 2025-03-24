@@ -46,6 +46,33 @@ def read_data(file):
 	adata = scvi.data.read_h5ad(file)
 	return adata
 
+def read_meta(path):
+	"""Read metadata file.
+	"""
+	
+	meta = pd.read_csv(path, sep='\t')
+	meta = meta[['FGID', 'AGE_SAMPLING', 'SEX', 'BMI', 'EVER_SMOKER', 'Blood donations within 2 years']]
+	meta.rename(columns={'FGID':'FINNGENID'}, inplace=True
+
+	return meta
+
+def add_meta(adata, path):
+	"""Add metadata to the annData object.
+	"""
+
+	meta = read_meta(path)
+
+	id_df = pd.DataFrame(adata.obs[['FINNGENID']])
+	id_df.reset_index(inplace=True)
+	merged = id_df.merge(meta, how='left', on='FINNGENID')
+	merged = merged.set_index('barcode')
+
+	adata.obs['AGE_SAMPLING'] = merged['AGE_SAMPLING']
+	adata.obs['SEX'] = pd.Categorical(merged['SEX'])
+	adata.obs['EVER_SMOKER'] = merged['EVER_SMOKER']
+	adata.obs['Blood donations within 2 years'] = merged['Blood donations within 2 years']
+
+
 def setup_anndata(adata):
 	"""Set up the anndata for scVI.
 
@@ -57,7 +84,8 @@ def setup_anndata(adata):
 		adata,
 		batch_key='Batch',
 		labels_key='seed_labels',
-		categorical_covariate_keys=['sample']
+		categorical_covariate_keys=['SEX'],
+		continuous_covariate_keys=['AGE_SAMPLING']
 	)
 
 

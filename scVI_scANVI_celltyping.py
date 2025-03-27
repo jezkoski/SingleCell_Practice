@@ -167,3 +167,54 @@ def predict_missing_cell_types(adata, scanvi_model):
 	adata.obsm[SCANVI_LATENT_KEY] = scanvi_model.get_latent_representation(adata)
 	adata.obs[SCANVI_PREDICTIONS_KEY] = scanvi_model.predict(adata)
 
+
+def cell_type_probabilities(scanvi_model, adata):
+	"""Get inferred cell type probabilities for each cell.
+
+	Args:
+		scanvi_model: trained scANVI model
+		adata: AnnData object
+	"""
+
+	df_probs = scanvi_model.predict(adata, soft=True)
+	
+	for i in df_probs.columns:
+		adata.obs['probs_scANVI_' + str(i)] = df_probs[i]
+
+
+def elbo(model, loss):
+	"""Plot elbow plot.
+	"""
+
+	elbo = model.history[loss]
+	elbo.to_csv()
+	fig, axs = plt.subplots(1)
+	axs.plot(elbo, label='elbo')
+	plt.savefig(f'elbo_{loss}.png', dpi=100)
+
+
+def save_model(model, dirname):
+	"""Save the model in dir 'dirname'
+	"""
+
+	model.save(dirname, overwrite=True)
+
+
+def normalize(adata):
+	"""Normalize data for UMAP and freeze the state in adata.raw.
+	"""
+
+	adata.layers['counts'] = adata.X.copy()
+	sc.pp.normalize_total(adata, target_sum=1e4)
+	sc.pp.log1p(adata)
+	adata.raw = adata
+
+def scanvi_umap(adata, SCANVI_LATENT_KEY, SCANVI_PREDICTIONS_KEY):
+	"""Calculate and plot UMAP with SCANVI keys
+	"""
+
+	sc.pp.neighbors(adata, use_rep=SCANVI_LATENT_KEY)
+	sc.tl.umap(adata)
+
+	sc.pl.umap(adata, color=['predicted.celltype.l2', SCANVI_PREDICTIONS_KEY], wspace=0.6, save='_scVI_scANVI_seeds_normalized.png')
+

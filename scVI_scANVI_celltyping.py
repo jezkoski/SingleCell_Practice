@@ -116,22 +116,38 @@ def set_scvi_model(adata, params):
 	return scvi_model
 
 
-def train_scvi(scvi_model, params, plan_kwargs):
+def train_scvi(scvi_model, params, plan_kwargs, multigpu=False):
 	"""Train scVI model.
 	"""
 
-	scvi_model.train(
-		max_epochs=params['max_epochs_scVI'],
-		plan_kwargs=plan_kwargs,
-		early_stopping=True,
-		early_stopping_monitor='elbo_validation',
-		early_stopping_patience=10,
-		early_stopping_min_delta=0.0,
-		check_val_every_n_epoch=1,
-		accelerator='gpu',
-	)
+	if multigpu:
+		scvi_model.train(
+                max_epochs=params['max_epochs_scVI'],
+                plan_kwargs=plan_kwargs,
+                early_stopping=True,
+                early_stopping_monitor='elbo_validation',
+                early_stopping_patience=10,
+                early_stopping_min_delta=0.0,
+                check_val_every_n_epoch=1,
+                accelerator='gpu',
+		devices=-1,
+		strategy='ddp_find_unused_parameters_true'
+        	)
+	else:
+		scvi_model.train(
+			max_epochs=params['max_epochs_scVI'],
+			plan_kwargs=plan_kwargs,
+			early_stopping=True,
+			early_stopping_monitor='elbo_validation',
+			early_stopping_patience=10,
+			early_stopping_min_delta=0.0,
+			check_val_every_n_epoch=1,
+			accelerator='gpu',
+		)
 
-def train_scvi(scvi_model, params):
+
+
+def train_scvi(scvi_model, params, multigpu=False):
 	"""Train scANVI model.
 
 	Args:
@@ -144,11 +160,20 @@ def train_scvi(scvi_model, params):
 
 	scanvi_model = scvi.model.SCANVI.from_scvi_model(scvi_model, unlabeled_category='Unknown')
 
-	scanvi_model.train(
+	if multigpu:
+  		scanvi_model.train(
+                	max_epochs=params['max_epochs_scANVI'],
+                	train_size=1.0,
+                	accelerator='gpu',
+			devices=-1,
+			strategy='ddp_find_unused_parameters_true'
+        	)
+	else:
+		scanvi_model.train(
 		max_epochs=params['max_epochs_scANVI'],
 		train_size=1.0,
 		accelerator='gpu'
-	)
+		)
 
 	return scanvi_model
 

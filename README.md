@@ -8,3 +8,8 @@ Covers the following topics:
 * Preprocessing/filtering data
 * Annotating adata object with metadata
 * cell typing with scANVI and scVI
+
+
+TODO 
+* k
+* k 
